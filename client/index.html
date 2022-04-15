@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="stylesheet" href="style.css"/>
+    <title>Back End Assessment</title>
+  </head>
+  <body class="container">
+    <button id="complimentButton">Get a compliment</button>
+    <button id="fortuneButton">Get a fortune</button>
+    <br /><br />
+    <div>
+      <select id="goals">
+        <option value="Please select a goal!"selected>Please select a goal!</option>
+        <option value="I want to travel the world">I want to travel the world</option>
+        <option value="I want to build my house"">I want to build my house</option>
+      </select>
+      <br /><br />
+      <form id="planning" class="hidden">
+        <input 
+            type='text'
+            id="plan"
+            placeholder="Add a plan"/>
+        <button>Add</button>
+      </form>
+      <ul id="planning-list"></ul>
+    </div>
+
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script>
+      let goal = null;
+
+      document.getElementById("complimentButton").onclick = function () {
+        axios.get("http://localhost:4000/api/compliment/")
+            .then(function (response) {
+              const data = response.data;
+              alert(data);
+            });
+      };
+
+      document.getElementById("fortuneButton").onclick = function () {
+        axios.get("http://localhost:4000/api/fortune/")
+            .then(function (response) {
+              const data = response.data;
+              alert(data);
+            });
+      };
+
+      document.getElementById("goals").onchange = function (event) {
+        axios.post("http://localhost:4000/api/goals/", {
+          name : event.target.value
+        }).then((res) => {
+          goal = res.data;
+          document.getElementById("planning").classList.remove('hidden');
+          alert('Congratulations for your courage!')
+        })
+      };
+
+      function createHTML(planningList) {
+        const list = document.getElementById('planning-list');
+        list.innerHTML = '';
+        planningList.forEach((plan) => {
+          const li = document.createElement("li");
+          const checkbox = document.createElement("input");
+          checkbox.type = "checkbox"
+          checkbox.checked = plan.checked;
+          checkbox.onclick = (event) => {
+            axios.put("http://localhost:4000/api/goals/planning", {
+              id: plan.id,
+              checked: event.target.checked,
+            }).then(res => {
+              createHTML(res.data.planningList);
+              alert("You completed this task !")
+            })
+          }
+          li.appendChild(checkbox)
+          li.appendChild(document.createTextNode(plan.name));
+          const button = document.createElement("button")
+          button.textContent = "X";
+          button.onclick = () => {
+            axios.delete(`http://localhost:4000/api/goals/planning/${plan.id}`)
+            .then(res => {
+              createHTML(res.data.planningList);
+              alert("Maybe this one wasn't a great idea, try again !")
+            })
+          }
+          li.appendChild(button)
+          list.appendChild(li);
+        })
+      }
+
+      document.getElementById('planning').addEventListener('submit', function (e) {
+        e.preventDefault()
+        const plan = document.querySelector('#plan')
+        axios.post("http://localhost:4000/api/goals/planning", {
+          name: plan.value
+        }).then((res) => {
+          goal = res.data;
+          plan.value = '';
+          createHTML(goal.planningList);
+          alert("That's a great idea!")
+        })
+      })
+    </script>
+  </body>
+</html>
